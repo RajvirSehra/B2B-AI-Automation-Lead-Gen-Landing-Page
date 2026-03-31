@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Building2, Database, Network, Settings, Shield, Zap, ArrowRight, Check } from 'lucide-react';
-import { submitAuditRequest, AuditRequest } from '../lib/supabase';
+import { AuditRequest } from '../lib/supabase';
 
 function LandingPage() {
   const [formData, setFormData] = useState<AuditRequest>({
@@ -10,43 +10,46 @@ function LandingPage() {
     phone: '',
     message: '',
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isScrolled, setIsScrolled] = useState(false);
+  const painPoints = ['manual data entry', 'endless scheduling', 'complex reporting', 'repetitive tasks'];
+  const [currentPainPoint, setCurrentPainPoint] = useState(0);
+  const [hoursSaved, setHoursSaved] = useState(0);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus('idle');
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentPainPoint((prev) => (prev + 1) % painPoints.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
-    try {
-      await submitAuditRequest(formData);
-      setSubmitStatus('success');
-      setFormData({
-        full_name: '',
-        email: '',
-        company_name: '',
-        phone: '',
-        message: '',
-      });
-      setTimeout(() => setSubmitStatus('idle'), 5000);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      setSubmitStatus('error');
-      setTimeout(() => setSubmitStatus('idle'), 5000);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  useEffect(() => {
+    const target = 14500;
+    const duration = 2000;
+    const steps = 60;
+    const stepTime = duration / steps;
+    let current = 0;
+
+    const timer = setInterval(() => {
+      current += target / steps;
+      if (current >= target) {
+        setHoursSaved(target);
+        clearInterval(timer);
+      } else {
+        setHoursSaved(Math.floor(current));
+      }
+    }, stepTime);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -71,6 +74,29 @@ function LandingPage() {
       {/* Grid pattern overlay */}
       <div className="fixed inset-0 grid-pattern pointer-events-none -z-10" />
 
+      {/* Navigation Bar */}
+      <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-gray-950/90 backdrop-blur-md border-b border-gray-800 py-4 shadow-2xl' : 'bg-transparent py-6'}`}>
+        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl tracking-tight text-white">Automate<span className="text-blue-500">AI</span></span>
+          </div>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#proof" className="hover:text-white transition-colors">Case Studies</a>
+            <a href="#audit-form" className="hover:text-white transition-colors">How it Works</a>
+          </div>
+          <button 
+            onClick={scrollToForm}
+            className={`btn-glow bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
+          >
+            Analyze My Workflows
+          </button>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <section className="relative px-6 pt-20 pb-32 md:pt-32 md:pb-48">
         <div className="max-w-5xl mx-auto">
@@ -81,10 +107,13 @@ function LandingPage() {
             </div>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-8 text-white">
+          <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-8 text-white min-h-[140px] md:min-h-[180px]">
             Your team is spending hours
             <br />
-            <span className="gradient-text">on work that shouldn't exist</span>
+            <span className="text-gray-400">on </span>
+            <span className="gradient-text transition-all duration-500 inline-block">
+              {painPoints[currentPainPoint]}
+            </span>
           </h1>
 
           <p className="text-xl md:text-2xl text-gray-400 leading-relaxed mb-12 max-w-3xl">
@@ -92,24 +121,35 @@ function LandingPage() {
             We build AI-powered automation systems that eliminate repetitive work and restore focus to what matters.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-16">
+          <div className="flex flex-col sm:flex-row gap-4 mb-8 max-w-2xl">
+            <input
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              name="email"
+              placeholder="Enter your work email..."
+              className="flex-1 px-6 py-4 bg-gray-900/80 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 transition-all text-lg"
+            />
             <button
               onClick={scrollToForm}
-              className="btn-glow group bg-white text-gray-950 px-10 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-all duration-300 flex items-center justify-center sm:justify-start"
+              className="btn-glow group bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 flex items-center justify-center whitespace-nowrap"
             >
-              Request an Automation Audit
+              Analyze My Workflows
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </button>
-            <button className="px-8 py-4 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-900/50 transition-all duration-300 font-semibold">
-              See how it works
-            </button>
           </div>
+          <p className="text-sm text-gray-400 mb-16 flex items-center">
+            <Shield className="w-4 h-4 mr-2 text-green-500" />
+            100% Free • No credit card required • Zero obligation
+          </p>
 
           {/* Stats preview */}
-          <div className="grid grid-cols-3 gap-4 max-w-md">
-            <div className="p-4 rounded-lg bg-white/5 border border-white/10 backdrop-blur">
-              <div className="text-2xl font-bold text-blue-400">8+</div>
-              <div className="text-xs text-gray-400 mt-1">Years experience</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl">
+            <div className="col-span-2 md:col-span-2 p-4 rounded-lg bg-gradient-to-br from-blue-900/40 to-blue-900/10 border border-blue-500/30 backdrop-blur w-full">
+              <div className="text-3xl font-bold text-white mb-1">
+                {hoursSaved.toLocaleString()}<span className="text-blue-400">+</span>
+              </div>
+              <div className="text-xs text-blue-200 mt-1 uppercase tracking-wider font-semibold">Hours Saved This Month</div>
             </div>
             <div className="p-4 rounded-lg bg-white/5 border border-white/10 backdrop-blur">
               <div className="text-2xl font-bold text-cyan-400">200+</div>
@@ -118,6 +158,45 @@ function LandingPage() {
             <div className="p-4 rounded-lg bg-white/5 border border-white/10 backdrop-blur">
               <div className="text-2xl font-bold text-blue-400">12+</div>
               <div className="text-xs text-gray-400 mt-1">Industries served</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Before & After Section */}
+      <section className="relative px-6 py-24 bg-gray-950">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Stop competing with the clock
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="p-8 rounded-xl bg-gray-900/50 border border-gray-800">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                  <span className="text-red-500 font-bold">✕</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-300">The Old Way</h3>
+              </div>
+              <ul className="space-y-4 text-gray-400">
+                <li className="flex items-start"><span className="text-red-500 mr-2 mt-1">✕</span> Manual data entry leading to costly errors</li>
+                <li className="flex items-start"><span className="text-red-500 mr-2 mt-1">✕</span> Emails and spreadsheets acting as a database</li>
+                <li className="flex items-start"><span className="text-red-500 mr-2 mt-1">✕</span> Key staff tied up in repetitive administrative work</li>
+              </ul>
+            </div>
+            <div className="p-8 rounded-xl bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border border-blue-500/30 glow-effect block">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <Check className="w-5 h-5 text-blue-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-white">The AI Way</h3>
+              </div>
+              <ul className="space-y-4 text-gray-300">
+                <li className="flex items-start"><span className="text-blue-400 mr-2 mt-1">✓</span> Instant, error-free data sync across all your tools</li>
+                <li className="flex items-start"><span className="text-blue-400 mr-2 mt-1">✓</span> Centralized, organized, and accessible data systems</li>
+                <li className="flex items-start"><span className="text-blue-400 mr-2 mt-1">✓</span> Your team focused purely on high-leverage, creative work</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -170,23 +249,52 @@ function LandingPage() {
             </div>
           </div>
 
+          {/* Testimonial Cards */}
+          <div className="grid md:grid-cols-2 gap-8 mb-20">
+            <div className="p-8 rounded-xl bg-gray-900/40 border border-gray-800 relative group hover:border-blue-500/30 transition-colors">
+              <div className="absolute top-8 right-8 text-6xl text-gray-800/50 font-serif leading-none group-hover:text-blue-500/20 transition-colors">"</div>
+              <p className="text-lg text-gray-300 mb-6 relative z-10 italic">"The AI system they built cut our invoice processing time from 40 hours a week to just 2 hours. Our operations team is finally able to focus on scaling instead of drowning in data entry."</p>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg">SJ</div>
+                <div>
+                  <div className="text-white font-semibold">Sarah Jenkins</div>
+                  <div className="text-sm text-blue-400">Director of Operations, TechFlow</div>
+                </div>
+              </div>
+            </div>
+            <div className="p-8 rounded-xl bg-gray-900/40 border border-gray-800 relative group hover:border-cyan-500/30 transition-colors">
+              <div className="absolute top-8 right-8 text-6xl text-gray-800/50 font-serif leading-none group-hover:text-cyan-500/20 transition-colors">"</div>
+              <p className="text-lg text-gray-300 mb-6 relative z-10 italic">"We were heavily reliant on manual spreadsheets. Within two weeks, we had a fully automated pipeline running. Highly recommend to any B2B company looking to optimize."</p>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold shadow-lg">MR</div>
+                <div>
+                  <div className="text-white font-semibold">Marcus R.</div>
+                  <div className="text-sm text-cyan-400">VP of Sales, OmniData</div>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="border-t border-gray-800 pt-12">
             <p className="text-gray-500 uppercase tracking-wider text-sm mb-8">Trusted by teams at</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
               {[
-                { icon: Database, label: 'Data Systems' },
-                { icon: Network, label: 'Infrastructure' },
-                { icon: Settings, label: 'Operations' },
-                { icon: Building2, label: 'Enterprise' },
-                { icon: Shield, label: 'Security' },
-                { icon: Zap, label: 'Performance' },
+                { icon: Database, label: 'Data Systems', tip: 'Automated ETL & Warehousing' },
+                { icon: Network, label: 'Infrastructure', tip: 'Server Monitoring & Scaling' },
+                { icon: Settings, label: 'Operations', tip: 'Workflow Automation' },
+                { icon: Building2, label: 'Enterprise', tip: 'Cross-department Sync' },
+                { icon: Shield, label: 'Security', tip: 'Compliance Automation' },
+                { icon: Zap, label: 'Performance', tip: 'Speed Optimization' },
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  className="group flex items-center justify-center p-6 bg-gradient-to-br from-white/5 to-white/0 border border-white/10 hover:border-blue-500/30 rounded-lg transition-all duration-300 card-hover floating"
+                  className="group relative flex items-center justify-center p-6 bg-gradient-to-br from-white/5 to-white/0 border border-white/10 hover:border-blue-500/30 rounded-lg transition-all duration-300 card-hover floating cursor-pointer"
                   style={{ animationDelay: `${idx * 0.1}s` }}
                 >
                   <item.icon className="w-8 h-8 text-gray-500 group-hover:text-blue-400 transition-colors" />
+                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap border border-gray-800 shadow-xl z-10">
+                    {item.tip}
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 border-b border-r border-gray-800 rotate-45"></div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -266,126 +374,71 @@ function LandingPage() {
             </div>
           </div>
 
-          {/* Form */}
-          <div className="relative glow-effect p-10 rounded-xl bg-gradient-to-br from-gray-900 to-gray-950 border border-blue-500/20 backdrop-blur">
-            <h3 className="text-2xl font-semibold text-white mb-6">Request your free audit</h3>
-
-            {submitStatus === 'success' && (
-              <div className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 flex items-center animate-in fade-in">
-                <Check className="w-5 h-5 mr-3" />
-                Thank you! We'll be in touch within 24 hours.
-              </div>
-            )}
-
-            {submitStatus === 'error' && (
-              <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
-                Something went wrong. Please try again or email us directly.
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+          {/* Scheduling & Trust Section */}
+          <div className="relative glow-effect p-[1px] rounded-xl bg-gradient-to-br from-blue-500/30 via-gray-900 to-cyan-500/30 overflow-hidden">
+            <div className="bg-gray-950 rounded-xl p-8 h-full">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-8">
                 <div>
-                  <label htmlFor="full_name" className="block text-sm font-medium text-gray-400 mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="full_name"
-                    name="full_name"
-                    value={formData.full_name}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 bg-gray-950/50 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none input-focus transition-all"
-                  />
+                  <h3 className="text-2xl font-semibold text-white mb-2">Book Your Strategy Call</h3>
+                  <p className="text-gray-400 text-sm">Find a time that works for you. No commitment required.</p>
                 </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-2">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 bg-gray-950/50 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none input-focus transition-all"
-                  />
+                <div className="flex gap-6">
+                  <div className="flex flex-col items-center">
+                    <Shield className="w-6 h-6 text-green-500 mb-2" />
+                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">SOC 2 Type II</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <Database className="w-6 h-6 text-blue-500 mb-2" />
+                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">GDPR Ready</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <Check className="w-6 h-6 text-cyan-500 mb-2" />
+                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Encrypted</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="company_name" className="block text-sm font-medium text-gray-400 mb-2">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    id="company_name"
-                    name="company_name"
-                    value={formData.company_name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-950/50 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none input-focus transition-all"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-400 mb-2">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-950/50 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none input-focus transition-all"
-                  />
+              {/* Mockup Calendly */}
+              <div className="w-full h-[400px] bg-white rounded-lg shadow-inner overflow-hidden flex items-center justify-center border border-gray-200">
+                <div className="text-center text-gray-500">
+                  <div className="w-16 h-16 mx-auto bg-blue-500/10 rounded-full flex items-center justify-center mb-4">
+                    <Zap className="w-8 h-8 text-blue-500" />
+                  </div>
+                  <p className="text-xl font-medium text-gray-800 mb-2">Scheduling Widget Embedded Here</p>
+                  <p className="text-sm">In production, drop your Calendly or Cal.com iframe here.</p>
                 </div>
               </div>
-
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-400 mb-2">
-                  Tell us about your biggest operational challenges
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-gray-950/50 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none input-focus transition-all resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full btn-glow group bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="inline-block animate-spin mr-2">⏳</span>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    Request Your Free Audit
-                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </button>
-
-              <p className="text-sm text-gray-500 text-center">
-                We respect your privacy. Your information will never be shared with third parties.
-              </p>
-            </form>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Divider */}
       <div className="section-divider" />
+
+      {/* FAQ Section */}
+      <section className="relative px-6 py-24 bg-gray-950">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-12">
+            Frequently Asked Questions
+          </h2>
+          <div className="space-y-4">
+            {[
+              { q: "Is my data secure?", a: "Absolutely. We are SOC 2 compliance-ready and never share your data. All automations use bank-grade encryption to ensure maximum security." },
+              { q: "How long does implementation take?", a: "For most systems, we go from strategy call to live deployment within 2-4 weeks, depending on complexity." },
+              { q: "Do I need technical skills?", a: "None at all. We build 'done-for-you' systems. We handle everything from data mapping to deployment and maintenance." }
+            ].map((faq, i) => (
+              <div key={i} className="p-6 rounded-lg bg-gray-900 border border-gray-800 hover:border-blue-500/30 transition-colors cursor-pointer group">
+                <h3 className="text-lg font-semibold text-white mb-2 flex justify-between items-center">
+                  {faq.q}
+                  <span className="text-blue-500 group-hover:rotate-180 transition-transform duration-300">↓</span>
+                </h3>
+                <p className="text-gray-400">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* CTA Section */}
       <section className="relative px-6 py-20 bg-gradient-to-b from-gray-950 to-gray-900/50">
@@ -400,20 +453,48 @@ function LandingPage() {
             onClick={scrollToForm}
             className="btn-glow group inline-flex items-center bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-10 py-4 rounded-lg text-lg font-semibold hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-300"
           >
-            Schedule Your Free Audit
+            Analyze My Workflows
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative px-6 py-12 border-t border-gray-800/50">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-600 text-sm">&copy; 2024 AI Automation Agency. All rights reserved.</p>
-          <div className="flex gap-6 mt-4 md:mt-0 text-sm text-gray-600">
-            <a href="#" className="hover:text-gray-400 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-gray-400 transition-colors">Terms</a>
-            <a href="#" className="hover:text-gray-400 transition-colors">Contact</a>
+      <footer className="relative px-6 py-12 border-t border-gray-800 bg-gray-950">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+          <div className="col-span-1 md:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-xl tracking-tight text-white">Automate<span className="text-blue-500">AI</span></span>
+            </div>
+            <p className="text-gray-400 mb-6 max-w-sm">
+              Helping B2B companies scale effortlessly by automating manual workflows and eliminating operational friction.
+            </p>
+          </div>
+          <div>
+            <h4 className="text-white font-semibold mb-4">Platform</h4>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li><a href="#features" className="hover:text-blue-400 transition-colors">Features</a></li>
+              <li><a href="#audit-form" className="hover:text-blue-400 transition-colors">How it Works</a></li>
+              <li><a href="#proof" className="hover:text-blue-400 transition-colors">Case Studies</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-white font-semibold mb-4">Legal</h4>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li><a href="#" className="hover:text-blue-400 transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-blue-400 transition-colors">Terms of Service</a></li>
+              <li><a href="#audit-form" className="hover:text-blue-400 transition-colors">Contact</a></li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-800/50">
+          <p className="text-gray-500 text-sm">&copy; {new Date().getFullYear()} Automate AI. All rights reserved.</p>
+          <div className="flex gap-4 mt-4 md:mt-0 text-gray-500">
+            <div className="w-8 h-8 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center hover:text-white cursor-pointer transition-colors text-xs font-bold">in</div>
+            <div className="w-8 h-8 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center hover:text-white cursor-pointer transition-colors text-xs font-bold">𝕏</div>
           </div>
         </div>
       </footer>
