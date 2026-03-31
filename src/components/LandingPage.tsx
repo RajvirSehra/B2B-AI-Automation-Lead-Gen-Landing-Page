@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Building2, Database, Network, Settings, Shield, Zap, ArrowRight, Check } from 'lucide-react';
-import { AuditRequest } from '../lib/supabase';
-
+import ROICalculator from './ROICalculator';
+import DiagnosticForm from './DiagnosticForm';
+import SectorCloud from './SectorCloud';
+import ImpactSnapshots from './ImpactSnapshots';
+import FoundersNote from './FoundersNote';
+import WorkflowSlider from './WorkflowSlider';
+import SystemSchematic from './SystemSchematic';
+import ExitIntentModal from './ExitIntentModal';
 function LandingPage() {
-  const [formData, setFormData] = useState<AuditRequest>({
-    full_name: '',
-    email: '',
-    company_name: '',
-    phone: '',
-    message: '',
-  });
   const [isScrolled, setIsScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const painPoints = ['manual data entry', 'endless scheduling', 'complex reporting', 'repetitive tasks'];
   const [currentPainPoint, setCurrentPainPoint] = useState(0);
   const [hoursSaved, setHoursSaved] = useState(0);
@@ -18,6 +18,11 @@ function LandingPage() {
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
+      
+      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      setScrollProgress(scrolled);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -51,19 +56,13 @@ function LandingPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
   const scrollToForm = () => {
     document.getElementById('audit-form')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 overflow-hidden">
+      <ExitIntentModal />
       {/* Animated background blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl blob -z-10" />
@@ -92,9 +91,11 @@ function LandingPage() {
             onClick={scrollToForm}
             className={`btn-glow bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
           >
-            Analyze My Workflows
+            Request Audit
           </button>
         </div>
+        {/* Scroll Progress Bar */}
+        <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-75" style={{ width: `${scrollProgress}%` }} />
       </nav>
 
       {/* Hero Section */}
@@ -122,14 +123,6 @@ function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mb-8 max-w-2xl">
-            <input
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              name="email"
-              placeholder="Enter your work email..."
-              className="flex-1 px-6 py-4 bg-gray-900/80 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 transition-all text-lg"
-            />
             <button
               onClick={scrollToForm}
               className="btn-glow group bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 flex items-center justify-center whitespace-nowrap"
@@ -163,44 +156,11 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Before & After Section */}
-      <section className="relative px-6 py-24 bg-gray-950">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Stop competing with the clock
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="p-8 rounded-xl bg-gray-900/50 border border-gray-800">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
-                  <span className="text-red-500 font-bold">✕</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-300">The Old Way</h3>
-              </div>
-              <ul className="space-y-4 text-gray-400">
-                <li className="flex items-start"><span className="text-red-500 mr-2 mt-1">✕</span> Manual data entry leading to costly errors</li>
-                <li className="flex items-start"><span className="text-red-500 mr-2 mt-1">✕</span> Emails and spreadsheets acting as a database</li>
-                <li className="flex items-start"><span className="text-red-500 mr-2 mt-1">✕</span> Key staff tied up in repetitive administrative work</li>
-              </ul>
-            </div>
-            <div className="p-8 rounded-xl bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border border-blue-500/30 glow-effect block">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <Check className="w-5 h-5 text-blue-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-white">The AI Way</h3>
-              </div>
-              <ul className="space-y-4 text-gray-300">
-                <li className="flex items-start"><span className="text-blue-400 mr-2 mt-1">✓</span> Instant, error-free data sync across all your tools</li>
-                <li className="flex items-start"><span className="text-blue-400 mr-2 mt-1">✓</span> Centralized, organized, and accessible data systems</li>
-                <li className="flex items-start"><span className="text-blue-400 mr-2 mt-1">✓</span> Your team focused purely on high-leverage, creative work</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Sector Cloud Section */}
+      <SectorCloud />
+
+      {/* Before & After Interactive Slider */}
+      <WorkflowSlider />
 
       {/* Divider */}
       <div className="section-divider" />
@@ -217,36 +177,8 @@ function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-20">
-            <div className="group p-8 rounded-xl bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 card-hover">
-              <div className="flex items-center mb-4">
-                <div className="p-3 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
-                  <Database className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">8+ Years</h3>
-              <p className="text-gray-400">Building systems and working with data at scale</p>
-            </div>
-
-            <div className="group p-8 rounded-xl bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 card-hover">
-              <div className="flex items-center mb-4">
-                <div className="p-3 rounded-lg bg-cyan-500/20 group-hover:bg-cyan-500/30 transition-colors">
-                  <Zap className="w-6 h-6 text-cyan-400" />
-                </div>
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">200+ Automations</h3>
-              <p className="text-gray-400">Running reliably in production right now</p>
-            </div>
-
-            <div className="group p-8 rounded-xl bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 card-hover">
-              <div className="flex items-center mb-4">
-                <div className="p-3 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
-                  <Network className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">12+ Industries</h3>
-              <p className="text-gray-400">SaaS, finance, logistics, healthcare, and more</p>
-            </div>
+          <div className="mb-20">
+            <ImpactSnapshots />
           </div>
 
           {/* Testimonial Cards */}
@@ -299,6 +231,24 @@ function LandingPage() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Systems Schematic Section */}
+      <SystemSchematic />
+
+      {/* ROI Calculator Section */}
+      <section className="relative px-6 py-24 bg-gray-950">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+              Calculate Your ROI
+            </h2>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              See exactly how much money and time you're leaving on the table.
+            </p>
+          </div>
+          <ROICalculator />
         </div>
       </section>
 
@@ -374,47 +324,17 @@ function LandingPage() {
             </div>
           </div>
 
-          {/* Scheduling & Trust Section */}
-          <div className="relative glow-effect p-[1px] rounded-xl bg-gradient-to-br from-blue-500/30 via-gray-900 to-cyan-500/30 overflow-hidden">
-            <div className="bg-gray-950 rounded-xl p-8 h-full">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-8">
-                <div>
-                  <h3 className="text-2xl font-semibold text-white mb-2">Book Your Strategy Call</h3>
-                  <p className="text-gray-400 text-sm">Find a time that works for you. No commitment required.</p>
-                </div>
-                <div className="flex gap-6">
-                  <div className="flex flex-col items-center">
-                    <Shield className="w-6 h-6 text-green-500 mb-2" />
-                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">SOC 2 Type II</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <Database className="w-6 h-6 text-blue-500 mb-2" />
-                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">GDPR Ready</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <Check className="w-6 h-6 text-cyan-500 mb-2" />
-                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Encrypted</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mockup Calendly */}
-              <div className="w-full h-[400px] bg-white rounded-lg shadow-inner overflow-hidden flex items-center justify-center border border-gray-200">
-                <div className="text-center text-gray-500">
-                  <div className="w-16 h-16 mx-auto bg-blue-500/10 rounded-full flex items-center justify-center mb-4">
-                    <Zap className="w-8 h-8 text-blue-500" />
-                  </div>
-                  <p className="text-xl font-medium text-gray-800 mb-2">Scheduling Widget Embedded Here</p>
-                  <p className="text-sm">In production, drop your Calendly or Cal.com iframe here.</p>
-                </div>
-              </div>
-            </div>
+          {/* Diagnostic Form */}
+          <div className="mt-16 w-full max-w-3xl mx-auto">
+            <DiagnosticForm />
           </div>
         </div>
       </section>
 
       {/* Divider */}
       <div className="section-divider" />
+
+      <FoundersNote />
 
       {/* FAQ Section */}
       <section className="relative px-6 py-24 bg-gray-950">
